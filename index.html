@@ -2,8 +2,8 @@
 <html lang="pt">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Registro de Atividades</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -33,41 +33,60 @@
             font-weight: bold;
         }
 
-        .form-container, .table-container, .search-container {
-            margin-bottom: 20px;
-        }
-
         .form-container, .search-container {
+            margin-bottom: 20px;
             display: flex;
-            justify-content: center;
+            flex-wrap: wrap;
+            gap: 10px;
             align-items: center;
         }
 
-        input[type="text"], input[type="date"], button {
+        .form-container label,
+        .form-container input,
+        .form-container button {
+            flex: 1;
+            min-width: 150px;
+        }
+
+        .form-container label {
+            font-weight: bold;
+        }
+
+        .form-container input[type="text"],
+        .form-container input[type="date"],
+        .search-container input[type="text"] {
             padding: 10px;
-            margin: 0 10px 10px 0;
             border-radius: 5px;
             border: 1px solid #ccc;
             background: #fff;
-            width: auto;
             outline: none;
+            width: 100%;
         }
 
-        button {
-            background-color: #333; /* Dark gray */
-            color: white;
+        .form-container button,
+        .table-container button {
+            padding: 10px;
+            border-radius: 5px;
             border: none;
+            background-color: #333;
+            color: white;
             cursor: pointer;
             transition: background-color 0.3s ease;
         }
 
-        button:hover {
-            background-color: #222; /* Darker gray */
+        .form-container button:hover,
+        .table-container button:hover {
+            background-color: #222;
+        }
+
+        .table-container {
+            overflow-x: auto;
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
+            min-width: 600px;
         }
 
         th, td {
@@ -77,14 +96,14 @@
         }
 
         th {
-            background-color: #333; /* Dark gray */
+            background-color: #333;
             color: white;
         }
 
         .action-buttons {
             display: flex;
             justify-content: center;
-            gap: 10px; /* Space between buttons */
+            gap: 10px;
         }
 
         .modal {
@@ -104,12 +123,16 @@
             background-color: white;
             padding: 20px;
             border-radius: 10px;
-            width: 400px;
+            width: 90%;
+            max-width: 400px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            position: relative;
         }
 
         .close-button {
-            float: right;
+            position: absolute;
+            top: 10px;
+            right: 15px;
             font-size: 28px;
             cursor: pointer;
             color: #aaa;
@@ -118,25 +141,58 @@
         .close-button:hover {
             color: #777;
         }
+
+        .notification {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 10px;
+            background-color: #4BB543;
+            color: white;
+            border-radius: 5px;
+            z-index: 1001;
+        }
+
+        @media (max-width: 600px) {
+            .form-container, .search-container {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .form-container label,
+            .form-container input,
+            .form-container button {
+                min-width: unset;
+                flex: unset;
+                width: 100%;
+            }
+
+            table {
+                font-size: 14px;
+            }
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">Registro de Atividades</div>
         <div class="form-container">
-            <input type="text" id="nomeAluno" placeholder="Nome do Aluno">
+            <label for="nomeAluno">Nome do Aluno:</label>
+            <input type="text" id="nomeAluno" placeholder="Nome do Aluno" autocomplete="off">
+            <label for="dataAtividade">Data da Atividade:</label>
             <input type="date" id="dataAtividade">
-            <input type="text" id="descricaoAtividade" placeholder="Descrição da Atividade">
-            <button onclick="adicionarAtividade()">Gravar</button>
-            <button onclick="exportarDados()">Exportar</button>            
-            <button id="triggerFileInput" onclick="document.getElementById('fileInput').click()">Importar</button>
-            <input type="file" id="fileInput" onchange="importarDados()" style="display: none;">
+            <label for="descricaoAtividade">Descrição da Atividade:</label>
+            <input type="text" id="descricaoAtividade" placeholder="Descrição da Atividade" autocomplete="off">
+            <button id="btnGravar">Gravar</button>
+            <button id="btnExportar">Exportar</button>
+            <button id="btnImportar">Importar</button>
+            <input type="file" id="fileInput" style="display: none;">
         </div>
         <div class="search-container">
-            <input type="text" id="searchInput" placeholder="Buscar Aluno" oninput="filtrarAtividades()">
+            <input type="text" id="searchInput" placeholder="Buscar" autocomplete="off">
         </div>
         <div class="table-container">
-            <table>
+            <table id="tabelaAtividades">
                 <thead>
                     <tr>
                         <th>Data</th>
@@ -145,7 +201,8 @@
                         <th>Ações</th>
                     </tr>
                 </thead>
-                <tbody id="tabelaAtividades">
+                <tbody>
+                    <!-- Linhas da tabela serão inseridas aqui -->
                 </tbody>
             </table>
         </div>
@@ -153,185 +210,250 @@
         <!-- Modal de Edição -->
         <div id="modalEdicao" class="modal">
             <div class="modal-content">
-                <span class="close-button" onclick="fecharModal()">&times;</span>
-                <input type="text" id="editNomeAluno" placeholder="Nome do Aluno">
+                <span class="close-button" id="closeModal">&times;</span>
+                <label for="editNomeAluno">Nome do Aluno:</label>
+                <input type="text" id="editNomeAluno" placeholder="Nome do Aluno" autocomplete="off">
+                <label for="editDataAtividade">Data da Atividade:</label>
                 <input type="date" id="editDataAtividade">
-                <input type="text" id="editDescricaoAtividade" placeholder="Descrição da Atividade">
-                <button onclick="salvarEdicao()">Salvar Edições</button>
+                <label for="editDescricaoAtividade">Descrição da Atividade:</label>
+                <input type="text" id="editDescricaoAtividade" placeholder="Descrição da Atividade" autocomplete="off">
+                <button id="btnSalvarEdicao">Salvar Edições</button>
             </div>
         </div>
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            ordenarEAtualizarTabela();
-        });
+        (function() {
+            let atividades = JSON.parse(localStorage.getItem('atividades')) || [];
+            let indiceEdicao = null;
 
-        let atividades = JSON.parse(localStorage.getItem('atividades')) || [];
-        let indiceEdicao = -1;
+            document.addEventListener('DOMContentLoaded', () => {
+                ordenarEAtualizarTabela();
+                adicionarEventos();
+            });
 
-        function adicionarAtividade() {
-            const nomeAluno = document.getElementById('nomeAluno').value;
-            const dataAtividade = document.getElementById('dataAtividade').value;
-            const descricaoAtividade = document.getElementById('descricaoAtividade').value;
-            
-            if (!nomeAluno || !dataAtividade || !descricaoAtividade) {
-                alert("Por favor, preencha todos os campos.");
-                return;
+            function adicionarEventos() {
+                document.getElementById('btnGravar').addEventListener('click', adicionarAtividade);
+                document.getElementById('btnExportar').addEventListener('click', exportarDados);
+                document.getElementById('btnImportar').addEventListener('click', () => {
+                    document.getElementById('fileInput').click();
+                });
+                document.getElementById('fileInput').addEventListener('change', importarDados);
+                document.getElementById('searchInput').addEventListener('input', filtrarAtividades);
+                document.getElementById('closeModal').addEventListener('click', fecharModal);
+                document.getElementById('btnSalvarEdicao').addEventListener('click', salvarEdicao);
             }
 
-            const formattedDate = formatarData(dataAtividade);
-            atividades.push({ nomeAluno, dataAtividade: formattedDate, descricaoAtividade });
-            salvarLocal();
-            ordenarEAtualizarTabela();
-            limparCampos();
-        }
+            function adicionarAtividade() {
+                const nomeAluno = document.getElementById('nomeAluno').value.trim();
+                const dataAtividade = document.getElementById('dataAtividade').value;
+                const descricaoAtividade = document.getElementById('descricaoAtividade').value.trim();
 
-        function formatarData(dataISO) {
-            const date = new Date(dataISO);
-            const day = date.getUTCDate().toString().padStart(2, '0');
-            const month = (date.getUTCMonth() + 1).toString().padStart(2, '0');
-            const year = date.getUTCFullYear();
-            return `${day}/${month}/${year}`;
-        }
-
-        function ordenarEAtualizarTabela() {
-            atividades.sort((a, b) => {
-                const partsA = a.dataAtividade.split('/');
-                const partsB = b.dataAtividade.split('/');
-                const dateA = new Date(partsA[2], partsA[1] - 1, partsA[0]);
-                const dateB = new Date(partsB[2], partsB[1] - 1, partsB[0]);
-
-                // Comparar datas de forma decrescente
-                if (dateB - dateA !== 0) {
-                    return dateB - dateA;
+                if (!nomeAluno || !dataAtividade || !descricaoAtividade) {
+                    alert("Por favor, preencha todos os campos.");
+                    return;
                 }
 
-                // Se as datas forem iguais, comparar os nomes de forma ascendente
-                return a.nomeAluno.localeCompare(b.nomeAluno);
-            });
-            atualizarTabela();
-        }
+                const atividade = {
+                    id: gerarIdUnico(),
+                    nomeAluno: nomeAluno,
+                    dataAtividade: dataAtividade,
+                    descricaoAtividade: descricaoAtividade
+                };
 
-        function atualizarTabela() {
-            const tbody = document.getElementById('tabelaAtividades');
-            tbody.innerHTML = '';
-            atividades.forEach((ativ, index) => {
-                let tr = `<tr>
-                    <td>${ativ.dataAtividade}</td>
-                    <td>${ativ.nomeAluno}</td>
-                    <td>${ativ.descricaoAtividade}</td>
-                    <td class="action-buttons">
-                        <button onclick="editarAtividade(${index})" style="background-color: #666; color: white;">Editar</button>
-                        <button onclick="excluirAtividade(${index})" style="background-color: #444; color: white;">Excluir</button>
-                    </td>
-                </tr>`;
-                tbody.innerHTML += tr;
-            });
-        }
-
-        function limparCampos() {
-            document.getElementById('nomeAluno').value = '';
-            document.getElementById('dataAtividade').value = '';
-            document.getElementById('descricaoAtividade').value = '';
-        }
-
-        function editarAtividade(index) {
-            indiceEdicao = index;
-            const ativ = atividades[index];
-            document.getElementById('editNomeAluno').value = ativ.nomeAluno;
-            document.getElementById('editDataAtividade').value = formatarDataISO(ativ.dataAtividade);
-            document.getElementById('editDescricaoAtividade').value = ativ.descricaoAtividade;
-            document.getElementById('modalEdicao').style.display = 'flex';
-        }
-
-        function formatarDataISO(data) {
-            const parts = data.split('/');
-            return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
-        }
-
-        function fecharModal() {
-            document.getElementById('modalEdicao').style.display = 'none';
-        }
-
-        function salvarEdicao() {
-            const nomeAluno = document.getElementById('editNomeAluno').value;
-            const dataAtividade = document.getElementById('editDataAtividade').value;
-            const descricaoAtividade = document.getElementById('editDescricaoAtividade').value;
-            
-            if (!nomeAluno || !dataAtividade || !descricaoAtividade) {
-                alert("Por favor, preencha todos os campos.");
-                return;
-            }
-
-            const formattedDate = formatarData(dataAtividade);
-            atividades[indiceEdicao] = { nomeAluno, dataAtividade: formattedDate, descricaoAtividade };
-            salvarLocal();
-            ordenarEAtualizarTabela();
-            fecharModal();
-        }
-
-        function excluirAtividade(index) {
-            atividades.splice(index, 1);
-            salvarLocal();
-            ordenarEAtualizarTabela();
-        }
-
-        function exportarDados() {
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(atividades));
-            const downloadAnchorNode = document.createElement('a');
-            downloadAnchorNode.setAttribute("href", dataStr);
-            downloadAnchorNode.setAttribute("download", "atividades.json");
-            document.body.appendChild(downloadAnchorNode);
-            downloadAnchorNode.click();
-            downloadAnchorNode.remove();
-        }
-
-        function importarDados() {
-            const fileReader = new FileReader();
-            fileReader.onload = function(event) {
-                atividades = JSON.parse(event.target.result).map(ativ => {
-                    // Corrigir o formato da data ao importar
-                    const [day, month, year] = ativ.dataAtividade.split('/');
-                    const formattedDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-                    return { ...ativ, dataAtividade: formatarData(formattedDate) };
-                });
+                atividades.push(atividade);
                 salvarLocal();
                 ordenarEAtualizarTabela();
-            };
-            fileReader.readAsText(document.getElementById('fileInput').files[0]);
-        }
+                limparCampos();
+                exibirMensagem("Atividade adicionada com sucesso.");
+            }
 
-        function salvarLocal() {
-            localStorage.setItem('atividades', JSON.stringify(atividades));
-        }
+            function gerarIdUnico() {
+                return '_' + Math.random().toString(36).substr(2, 9);
+            }
 
-        function filtrarAtividades() {
-            const searchInput = document.getElementById('searchInput').value.toLowerCase();
-            const atividadesFiltradas = atividades.filter(ativ => 
-                ativ.nomeAluno.toLowerCase().includes(searchInput) || 
-                ativ.dataAtividade.includes(searchInput) || 
-                ativ.descricaoAtividade.toLowerCase().includes(searchInput)
-            );
-            atualizarTabelaFiltrada(atividadesFiltradas);
-        }
+            function ordenarEAtualizarTabela() {
+                atividades.sort((a, b) => {
+                    const dateA = new Date(a.dataAtividade);
+                    const dateB = new Date(b.dataAtividade);
 
-        function atualizarTabelaFiltrada(atividadesFiltradas) {
-            const tbody = document.getElementById('tabelaAtividades');
-            tbody.innerHTML = '';
-            atividadesFiltradas.forEach((ativ, index) => {
-                let tr = `<tr>
-                    <td>${ativ.dataAtividade}</td>
-                    <td>${ativ.nomeAluno}</td>
-                    <td>${ativ.descricaoAtividade}</td>
-                    <td class="action-buttons">
-                        <button onclick="editarAtividade(${index})" style="background-color: #666; color: white;">Editar</button>
-                        <button onclick="excluirAtividade(${index})" style="background-color: #444; color: white;">Excluir</button>
-                    </td>
-                </tr>`;
-                tbody.innerHTML += tr;
-            });
-        }
+                    if (dateB - dateA !== 0) {
+                        return dateB - dateA;
+                    }
+                    return a.nomeAluno.localeCompare(b.nomeAluno);
+                });
+                atualizarTabela(atividades);
+            }
+
+            function atualizarTabela(atividadesParaExibir) {
+                const tbody = document.querySelector('#tabelaAtividades tbody');
+                tbody.innerHTML = '';
+
+                atividadesParaExibir.forEach(atividade => {
+                    const tr = document.createElement('tr');
+
+                    const tdData = document.createElement('td');
+                    tdData.textContent = formatarDataParaExibicao(atividade.dataAtividade);
+                    tr.appendChild(tdData);
+
+                    const tdAluno = document.createElement('td');
+                    tdAluno.textContent = atividade.nomeAluno;
+                    tr.appendChild(tdAluno);
+
+                    const tdDescricao = document.createElement('td');
+                    tdDescricao.textContent = atividade.descricaoAtividade;
+                    tr.appendChild(tdDescricao);
+
+                    const tdAcoes = document.createElement('td');
+                    tdAcoes.classList.add('action-buttons');
+
+                    const btnEditar = document.createElement('button');
+                    btnEditar.textContent = 'Editar';
+                    btnEditar.style.backgroundColor = '#666';
+                    btnEditar.style.color = 'white';
+                    btnEditar.addEventListener('click', () => editarAtividade(atividade.id));
+                    tdAcoes.appendChild(btnEditar);
+
+                    const btnExcluir = document.createElement('button');
+                    btnExcluir.textContent = 'Excluir';
+                    btnExcluir.style.backgroundColor = '#444';
+                    btnExcluir.style.color = 'white';
+                    btnExcluir.addEventListener('click', () => excluirAtividade(atividade.id));
+                    tdAcoes.appendChild(btnExcluir);
+
+                    tr.appendChild(tdAcoes);
+                    tbody.appendChild(tr);
+                });
+            }
+
+            function limparCampos() {
+                document.getElementById('nomeAluno').value = '';
+                document.getElementById('dataAtividade').value = '';
+                document.getElementById('descricaoAtividade').value = '';
+            }
+
+            function editarAtividade(id) {
+                indiceEdicao = atividades.findIndex(ativ => ativ.id === id);
+                const atividade = atividades[indiceEdicao];
+                document.getElementById('editNomeAluno').value = atividade.nomeAluno;
+                document.getElementById('editDataAtividade').value = atividade.dataAtividade;
+                document.getElementById('editDescricaoAtividade').value = atividade.descricaoAtividade;
+                document.getElementById('modalEdicao').style.display = 'flex';
+            }
+
+            function fecharModal() {
+                document.getElementById('modalEdicao').style.display = 'none';
+            }
+
+            function salvarEdicao() {
+                const nomeAluno = document.getElementById('editNomeAluno').value.trim();
+                const dataAtividade = document.getElementById('editDataAtividade').value;
+                const descricaoAtividade = document.getElementById('editDescricaoAtividade').value.trim();
+
+                if (!nomeAluno || !dataAtividade || !descricaoAtividade) {
+                    alert("Por favor, preencha todos os campos.");
+                    return;
+                }
+
+                atividades[indiceEdicao].nomeAluno = nomeAluno;
+                atividades[indiceEdicao].dataAtividade = dataAtividade;
+                atividades[indiceEdicao].descricaoAtividade = descricaoAtividade;
+
+                salvarLocal();
+                ordenarEAtualizarTabela();
+                fecharModal();
+                exibirMensagem("Atividade editada com sucesso.");
+            }
+
+            function excluirAtividade(id) {
+                if (confirm("Deseja realmente excluir esta atividade?")) {
+                    atividades = atividades.filter(ativ => ativ.id !== id);
+                    salvarLocal();
+                    ordenarEAtualizarTabela();
+                    exibirMensagem("Atividade excluída com sucesso.");
+                }
+            }
+
+            function exportarDados() {
+                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(atividades));
+                const downloadAnchorNode = document.createElement('a');
+                downloadAnchorNode.setAttribute("href", dataStr);
+                downloadAnchorNode.setAttribute("download", "atividades.json");
+                document.body.appendChild(downloadAnchorNode);
+                downloadAnchorNode.click();
+                downloadAnchorNode.remove();
+            }
+
+            function importarDados() {
+                const fileInput = document.getElementById('fileInput');
+                const file = fileInput.files[0];
+                if (!file) {
+                    alert("Nenhum arquivo selecionado.");
+                    return;
+                }
+
+                const fileReader = new FileReader();
+                fileReader.onload = function(event) {
+                    try {
+                        const importedData = JSON.parse(event.target.result);
+                        if (Array.isArray(importedData)) {
+                            atividades = importedData.map(ativ => {
+                                return {
+                                    id: ativ.id || gerarIdUnico(),
+                                    nomeAluno: ativ.nomeAluno,
+                                    dataAtividade: ativ.dataAtividade,
+                                    descricaoAtividade: ativ.descricaoAtividade
+                                };
+                            });
+                            salvarLocal();
+                            ordenarEAtualizarTabela();
+                            exibirMensagem("Dados importados com sucesso.");
+                        } else {
+                            alert("O arquivo importado não está no formato correto.");
+                        }
+                    } catch (error) {
+                        alert("Erro ao importar dados: " + error.message);
+                    }
+                };
+                fileReader.onerror = function() {
+                    alert("Não foi possível ler o arquivo.");
+                };
+                fileReader.readAsText(file);
+            }
+
+            function salvarLocal() {
+                localStorage.setItem('atividades', JSON.stringify(atividades));
+            }
+
+            function filtrarAtividades() {
+                const termoBusca = document.getElementById('searchInput').value.toLowerCase();
+                const atividadesFiltradas = atividades.filter(ativ => {
+                    return ativ.nomeAluno.toLowerCase().includes(termoBusca) ||
+                           formatarDataParaExibicao(ativ.dataAtividade).includes(termoBusca) ||
+                           ativ.descricaoAtividade.toLowerCase().includes(termoBusca);
+                });
+                atualizarTabela(atividadesFiltradas);
+            }
+
+            function formatarDataParaExibicao(dataISO) {
+                const date = new Date(dataISO);
+                const day = date.getDate().toString().padStart(2, '0');
+                const month = (date.getMonth() + 1).toString().padStart(2, '0');
+                const year = date.getFullYear();
+                return `${day}/${month}/${year}`;
+            }
+
+            function exibirMensagem(mensagem) {
+                const divMensagem = document.createElement('div');
+                divMensagem.textContent = mensagem;
+                divMensagem.className = 'notification';
+                document.body.appendChild(divMensagem);
+
+                setTimeout(() => {
+                    divMensagem.remove();
+                }, 3000);
+            }
+        })();
     </script>
 </body>
 </html>
